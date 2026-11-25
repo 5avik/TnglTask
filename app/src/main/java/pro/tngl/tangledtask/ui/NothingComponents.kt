@@ -1,9 +1,5 @@
 package pro.tngl.tangledtask.ui
 
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.Region
-import android.graphics.Typeface
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
@@ -18,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -30,11 +25,17 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import pro.tngl.tangledtask.R
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 internal val LocalDotTypography = compositionLocalOf { true }
 internal val LocalNothingMotion = compositionLocalOf { true }
+
+private val DotMatrixFamily = FontFamily(Font(R.font.dot_matrix_mono_bold, weight = FontWeight.Bold))
 
 @Composable
 fun NothingDotMatrixText(
@@ -43,42 +44,12 @@ fun NothingDotMatrixText(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface,
 ) {
-    if (!LocalDotTypography.current) {
-        Text(text, modifier, color = color, style = style, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        return
+    val displayStyle = if (LocalDotTypography.current) {
+        style.copy(fontFamily = DotMatrixFamily, fontWeight = FontWeight.Bold)
+    } else {
+        style
     }
-    val paint = remember { Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
-    } }
-    Text(
-        text, modifier.drawWithCache {
-            paint.textSize = style.fontSize.toPx() * .92f
-            val maxWidth = size.width
-            val height = size.height
-            val shown = if (paint.measureText(text) <= maxWidth) text else {
-                val count = paint.breakText(text, true, (maxWidth - paint.measureText("…")).coerceAtLeast(0f), null)
-                text.take(count) + "…"
-            }
-            val baseline = (size.height - paint.fontMetrics.ascent - paint.fontMetrics.descent) / 2f
-            val path = Path()
-            paint.getTextPath(shown, 0, shown.length, 0f, baseline, path)
-            val mask = Region()
-            mask.setPath(path, Region(0, 0, maxWidth.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1)))
-            val step = (paint.textSize / 14f).coerceAtLeast(1.4f)
-            val dots = buildList {
-                var y = step / 2
-                while (y < height) {
-                    var x = step / 2
-                    while (x < maxWidth) {
-                        if (mask.contains(x.toInt(), y.toInt())) add(Offset(x, y))
-                        x += step
-                    }
-                    y += step
-                }
-            }
-            onDrawBehind { dots.forEach { drawCircle(color, step * .36f, it) } }
-        }, color = Color.Transparent, style = style, maxLines = 1, overflow = TextOverflow.Ellipsis,
-    )
+    Text(text, modifier, color = color, style = displayStyle, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
 @Composable
