@@ -4,13 +4,11 @@ import androidx.compose.ui.res.stringResource
 import pro.tngl.tangledtask.R
 
 import android.Manifest
-import android.app.DatePickerDialog
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import android.app.TimePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -65,7 +63,7 @@ fun <T> Choice(label: String, selected: T, options: List<Pair<T, String>>, onSel
 
 @Composable
 fun ColorChoices(selected: Long?, onSelect: (Long) -> Unit) {
-    val names = listOf("Изумрудный", "Голубой", "Сиреневый", "Янтарный", "Розовый", "Коралловый")
+    val names = listOf("Красный", "Изумрудный", "Голубой", "Сиреневый", "Янтарный", "Розовый", "Коралловый")
     Row(horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
         taskColors.forEachIndexed { index, color ->
             Box(Modifier.size(44.dp).semantics { contentDescription = names[index] }
@@ -97,6 +95,7 @@ fun TaskEditor(original: Task?, initialDay: Long?, state: TaskState, model: Task
     var checklist by rememberSaveable { mutableStateOf(original?.subtasks ?: "[]") }
     var newSubtask by rememberSaveable { mutableStateOf("") }
     var delete by rememberSaveable { mutableStateOf(false) }
+    var picker by rememberSaveable { mutableStateOf<String?>(null) }
     var saving by remember { mutableStateOf(false) }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     fun persist(task: Task) {
@@ -122,29 +121,22 @@ fun TaskEditor(original: Task?, initialDay: Long?, state: TaskState, model: Task
         interval = interval.toIntOrNull()?.coerceIn(1, 3650) ?: 1, subtasks = checklist, color = color,
         anchor = day?.let { if (it == original?.dueDay) original?.anchor else LocalDate.ofEpochDay(it).dayOfMonth },
     )
-    ModalBottomSheet(onDismissRequest = { if (!saving) close() }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    NothingBottomSheet(onDismissRequest = { if (!saving) close() }) {
         Column(Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState())
             .padding(start = 20.dp, end = 20.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(if (original == null) "Новая задача" else "Редактирование", style = MaterialTheme.typography.headlineSmall)
-            OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.ui_settingsscreen_18)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            Button(onClick = { persist(draft()) }, enabled = valid && !saving, modifier = Modifier.fillMaxWidth()) {
+            NothingDotMatrixText(if (original == null) "Новая задача" else "Редактирование", MaterialTheme.typography.headlineSmall)
+            NothingTextField(title, { title = it }, label = { Text(stringResource(R.string.ui_settingsscreen_18)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            NothingButton(onClick = { persist(draft()) }, enabled = valid && !saving, modifier = Modifier.fillMaxWidth()) {
                 Text(if (original == null) "Создать задачу" else "Сохранить")
             }
-            OutlinedTextField(description, { description = it }, label = { Text(stringResource(R.string.ui_taskeditor_21)) }, modifier = Modifier.fillMaxWidth())
+            NothingTextField(description, { description = it }, label = { Text(stringResource(R.string.ui_taskeditor_21)) }, modifier = Modifier.fillMaxWidth())
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Choice("Категория", category, listOf(null to "Без категории") + state.categories.map { it.id to "${it.icon} ${it.name}" }) { category = it }
                 Choice("Приоритет", priority, priorities.mapIndexed { i, name -> i to name }) { priority = it }
-                OutlinedButton(onClick = {
-                    val date = day?.let(LocalDate::ofEpochDay) ?: LocalDate.now()
-                    DatePickerDialog(context, { _, y, m, d -> day = LocalDate.of(y, m + 1, d).toEpochDay() },
-                        date.year, date.monthValue - 1, date.dayOfMonth).show()
-                }) { Text(day?.let { LocalDate.ofEpochDay(it).format(shortDate) } ?: "Дата") }
+                OutlinedButton(onClick = { picker = "date" }) { Text(day?.let { LocalDate.ofEpochDay(it).format(shortDate) } ?: "Дата") }
                 if (day != null) {
                     TextButton(onClick = { day = null; minute = null; reminder = null; repeat = RepeatRule.NONE.name }) { Text(stringResource(R.string.ui_taskeditor_22)) }
-                    OutlinedButton(onClick = {
-                        val time = minute ?: 540
-                        TimePickerDialog(context, { _, h, m -> minute = h * 60 + m }, time / 60, time % 60, state.prefs.time24).show()
-                    }) { Text(minute?.let { formatTime(it, state.prefs.time24) } ?: "Время") }
+                    OutlinedButton(onClick = { picker = "time" }) { Text(minute?.let { formatTime(it, state.prefs.time24) } ?: "Время") }
                     if (minute != null) {
                         TextButton(onClick = { minute = null; reminder = null }) { Text(stringResource(R.string.ui_taskeditor_23)) }
                         Choice("Напоминание", reminder, reminderOptions) { reminder = it }
@@ -161,7 +153,7 @@ fun TaskEditor(original: Task?, initialDay: Long?, state: TaskState, model: Task
                 }
             }
             if (day != null && repeat == RepeatRule.INTERVAL.name) {
-                OutlinedTextField(interval, { interval = it.filter(Char::isDigit).take(4) },
+                NothingTextField(interval, { interval = it.filter(Char::isDigit).take(4) },
                     label = { Text(stringResource(R.string.ui_taskeditor_24)) }, singleLine = true,
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number))
             }
@@ -171,7 +163,7 @@ fun TaskEditor(original: Task?, initialDay: Long?, state: TaskState, model: Task
             Text(stringResource(R.string.ui_taskeditor_26), style = MaterialTheme.typography.titleMedium)
             subtasks.forEachIndexed { index, item ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(item.done, { done ->
+                    NothingCheckbox(item.done, { done ->
                         checklist = encodeSubtasks(subtasks.mapIndexed { i, sub -> if (i == index) sub.copy(done = done) else sub })
                     }, modifier = Modifier.semantics { contentDescription = item.name })
                     Text(item.name, Modifier.weight(1f))
@@ -179,7 +171,7 @@ fun TaskEditor(original: Task?, initialDay: Long?, state: TaskState, model: Task
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(newSubtask, { newSubtask = it }, label = { Text(stringResource(R.string.ui_taskeditor_28)) },
+                NothingTextField(newSubtask, { newSubtask = it }, label = { Text(stringResource(R.string.ui_taskeditor_28)) },
                     modifier = Modifier.weight(1f), singleLine = true)
                 TextButton(enabled = newSubtask.isNotBlank(), onClick = {
                     checklist = encodeSubtasks(subtasks + Subtask(newSubtask.trim()))
@@ -195,6 +187,39 @@ fun TaskEditor(original: Task?, initialDay: Long?, state: TaskState, model: Task
                     TextButton(onClick = { delete = true }) { Text(stringResource(R.string.ui_taskeditor_30), color = MaterialTheme.colorScheme.error) }
                 }
             }
+        }
+    }
+    when (picker) {
+        "date" -> {
+            val selected = day ?: LocalDate.now().toEpochDay()
+            val year = LocalDate.ofEpochDay(selected).year
+            val dateState = rememberDatePickerState(
+                initialSelectedDateMillis = selected * 86_400_000L,
+                yearRange = minOf(1900, year)..maxOf(2100, year),
+            )
+            DatePickerDialog(onDismissRequest = { picker = null }, confirmButton = {
+                TextButton(enabled = dateState.selectedDateMillis != null, onClick = {
+                    day = dateState.selectedDateMillis?.let { Math.floorDiv(it, 86_400_000L) }
+                    picker = null
+                }) { Text("Выбрать") }
+            }, dismissButton = { TextButton(onClick = { picker = null }) { Text("Отмена") } }) {
+                DatePicker(dateState, title = {
+                    NothingDotMatrixText("ДАТА", MaterialTheme.typography.titleLarge, Modifier.padding(16.dp))
+                }, modifier = Modifier.verticalScroll(rememberScrollState()))
+            }
+        }
+        "time" -> {
+            val initial = minute ?: 540
+            val clock = rememberTimePickerState(initial / 60, initial % 60, state.prefs.time24)
+            AlertDialog(onDismissRequest = { picker = null },
+                title = { NothingDotMatrixText("ВРЕМЯ", MaterialTheme.typography.headlineSmall) },
+                text = { TimeInput(clock) },
+                confirmButton = { TextButton(onClick = {
+                    minute = clock.hour * 60 + clock.minute
+                    picker = null
+                }) { Text("Выбрать") } },
+                dismissButton = { TextButton(onClick = { picker = null }) { Text("Отмена") } },
+            )
         }
     }
     if (delete && original != null) AlertDialog(onDismissRequest = { delete = false },

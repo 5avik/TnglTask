@@ -10,6 +10,8 @@ import android.content.IntentFilter
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -82,14 +84,22 @@ fun TaskAppContent(model: TaskViewModel, launchAction: String?, handled: () -> U
             restoreState = true
         }
     }
-    PlanningTheme(state.prefs) {
+    NothingTheme(state.prefs) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val wide = maxWidth >= 760.dp
             Scaffold(
                 topBar = {
-                    TopAppBar(title = { Text(if (route == "settings") "Настройки" else if (route == "today") "TnglTask" else titles[routes.indexOf(route)]) },
+                    TopAppBar(title = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                            Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                            NothingDotMatrixText(
+                                if (route == "settings") "НАСТРОЙКИ" else if (route == "today") "TNGLTASK" else titles[routes.indexOf(route)].uppercase(),
+                                MaterialTheme.typography.headlineSmall,
+                            )
+                        }
+                    },
                         navigationIcon = {
-                            if (route == "settings") IconButton(onClick = { nav.popBackStack() }) {
+                            if (route == "settings") NothingIconButton(onClick = { nav.popBackStack() }) {
                                 Icon(Icons.Default.ArrowBack, "Назад")
                             }
                         }, actions = {
@@ -99,17 +109,14 @@ fun TaskAppContent(model: TaskViewModel, launchAction: String?, handled: () -> U
                         }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background))
                 },
                 bottomBar = {
-                    if (!wide && route in routes) NavigationBar {
-                        routes.forEachIndexed { index, target ->
-                            NavigationBarItem(route == target, { choose(target) },
-                                icon = { Icon(icons[index], null) }, label = { Text(titles[index], maxLines = 1) })
-                        }
-                    }
+                    if (!wide && route in routes) NothingNavigationBar(routes.indexOf(route), titles) { choose(routes[it]) }
                 },
                 snackbarHost = { SnackbarHost(snack) },
                 floatingActionButton = {
                     if (route in routes.take(3)) FloatingActionButton(
                         onClick = { add(if (route == "calendar") calendarSelected else if (route == "today") todaySelected else null) },
+                        shape = CircleShape,
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp),
                         containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary,
                     ) { Icon(Icons.Default.Add, "Создать задачу") }
                 },

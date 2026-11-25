@@ -51,18 +51,17 @@ fun SettingsScreen(state: TaskState, model: TaskViewModel) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             SettingsCard("Персонализация") {
-                OutlinedTextField(name ?: prefs.name, { name = it.take(60) }, Modifier.fillMaxWidth(),
+                NothingTextField(name ?: prefs.name, { name = it.take(60) }, Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.ui_settingsscreen_1)) }, singleLine = true)
                 if (name != null) TextButton(onClick = {
                     val value = name.orEmpty().trim()
                     model.prefs { it.copy(name = value) }
                     name = null
                 }) { Text(stringResource(R.string.ui_settingsscreen_2)) }
-                Choice("Тема", prefs.theme, listOf("system" to "Системная", "light" to "Светлая", "dark" to "Тёмная", "amoled" to "AMOLED")) { key ->
+                Choice("Тема", prefs.theme, listOf("system" to "Nothing System", "light" to "Nothing Light", "dark" to "Nothing Dark", "amoled" to "AMOLED")) { key ->
                     model.prefs { it.copy(theme = key) }
                 }
-                Text(stringResource(R.string.ui_settingsscreen_3))
-                ColorChoices(prefs.accent) { value -> model.prefs { it.copy(accent = value) } }
+                SettingSwitch("Точечная типографика", prefs.dotTypography) { value -> model.prefs { it.copy(dotTypography = value) } }
                 SettingSwitch("Анимации", prefs.animations) { value -> model.prefs { it.copy(animations = value) } }
                 SettingSwitch("Тактильная отдача", prefs.haptics) { value -> model.prefs { it.copy(haptics = value) } }
             }
@@ -130,7 +129,7 @@ fun SettingsScreen(state: TaskState, model: TaskViewModel) {
 
 @Composable
 private fun SettingsCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface) {
+    NothingCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             content()
@@ -142,7 +141,7 @@ private fun SettingsCard(title: String, content: @Composable ColumnScope.() -> U
 private fun SettingSwitch(label: String, enabled: Boolean, change: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f))
-        Switch(enabled, change, modifier = Modifier.semantics { contentDescription = label })
+        NothingSwitch(enabled, change, modifier = Modifier.semantics { contentDescription = label })
     }
 }
 
@@ -154,8 +153,8 @@ private fun CategoryDialog(original: Category?, close: () -> Unit, save: (Catego
     AlertDialog(onDismissRequest = close, title = { Text(if (original == null) "Новая категория" else "Изменить категорию") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(name, { name = it.take(60) }, label = { Text(stringResource(R.string.ui_settingsscreen_18)) }, singleLine = true)
-                OutlinedTextField(icon, { if (it.length <= 8) icon = it }, label = { Text(stringResource(R.string.ui_settingsscreen_19)) }, singleLine = true)
+                NothingTextField(name, { name = it.take(60) }, label = { Text(stringResource(R.string.ui_settingsscreen_18)) }, singleLine = true)
+                NothingTextField(icon, { if (it.length <= 8) icon = it }, label = { Text(stringResource(R.string.ui_settingsscreen_19)) }, singleLine = true)
                 ColorChoices(color) { color = it }
             }
         },

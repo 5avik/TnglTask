@@ -2,6 +2,9 @@ package pro.tngl.tangledtask.widgets
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
+import androidx.annotation.ColorRes
+import androidx.compose.runtime.remember
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -18,6 +21,8 @@ import androidx.glance.appwidget.lazy.items
 import androidx.glance.layout.*
 import androidx.glance.text.*
 import pro.tngl.tangledtask.MainActivity
+import pro.tngl.tangledtask.R
+import androidx.glance.unit.ColorProvider
 import pro.tngl.tangledtask.core.TaskApp
 import pro.tngl.tangledtask.data.Task
 import java.time.LocalDate
@@ -42,26 +47,76 @@ class TodayWidget : GlanceAppWidget() {
 @Composable
 private fun TodayContent(tasks: List<Task>, create: Action) {
     val count = tasks.count { it.completedAt != null }
-    Column(GlanceModifier.fillMaxSize().background(GlanceTheme.colors.surface).padding(12.dp)) {
+    val ink = widgetColor(R.color.widget_ink)
+    Column(GlanceModifier.fillMaxSize().background(widgetColor(R.color.widget_background)).padding(12.dp)) {
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Сегодня", GlanceModifier.defaultWeight(),
-                style = TextStyle(color = GlanceTheme.colors.onSurface, fontWeight = FontWeight.Bold, fontSize = 17.sp))
-            Button("Добавить", create)
+                style = TextStyle(color = ink, fontWeight = FontWeight.Bold, fontSize = 17.sp))
+            Text("＋ Добавить", GlanceModifier.clickable(create).padding(8.dp), style = TextStyle(color = ink))
         }
-        Text("Выполнено $count из ${tasks.size}", style = TextStyle(color = GlanceTheme.colors.onSurface))
-        LinearProgressIndicator(if (tasks.isEmpty()) 0f else count.toFloat() / tasks.size,
-            modifier = GlanceModifier.fillMaxWidth().padding(vertical = 6.dp),
-            color = androidx.glance.unit.ColorProvider(Color(0xFF34D399)))
-        if (tasks.isEmpty()) Text("На сегодня задач нет", style = TextStyle(color = GlanceTheme.colors.onSurface))
+        WidgetProgress(count, tasks.size)
+        if (tasks.isEmpty()) Text("На сегодня задач нет", style = TextStyle(color = ink))
         LazyColumn {
             items(tasks) { task ->
                 val done = task.completedAt != null
-                Text(if (done) "✓  ${task.title}" else "○  ${task.title}",
+                Text(if (done) "●  ${task.title}" else "○  ${task.title}",
                     modifier = GlanceModifier.fillMaxWidth().padding(vertical = 8.dp).clickable(
                         actionRunCallback<CompleteWidgetTask>(actionParametersOf(taskId to task.id, targetDone to !done))),
-                    style = TextStyle(color = GlanceTheme.colors.onSurface), maxLines = 2)
+                    style = TextStyle(color = ink), maxLines = 2)
             }
         }
+    }
+}
+
+class ProgressWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget = ProgressWidget()
+}
+
+class ProgressWidget : GlanceAppWidget() {
+    override val sizeMode = SizeMode.Exact
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val today = LocalDate.now().toEpochDay()
+        val tasks = (context.applicationContext as TaskApp).tasks.all().filter { !it.deleted && it.dueDay == today }
+        provideContent {
+            Column(GlanceModifier.fillMaxSize().background(widgetColor(R.color.widget_background)).padding(12.dp)) {
+                Text("Прогресс сегодня", style = TextStyle(color = widgetColor(R.color.widget_ink), fontWeight = FontWeight.Bold))
+                WidgetProgress(tasks.count { it.completedAt != null }, tasks.size)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WidgetProgress(count: Int, total: Int) {
+    val ink = widgetColor(R.color.widget_ink)
+    val muted = widgetColor(R.color.widget_muted)
+    val accent = ColorProvider(Color(0xFFD71921))
+    val track = widgetColor(R.color.widget_track)
+    val progress = if (total == 0) 0 else count * 100 / total
+    Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text("$progress%", GlanceModifier.defaultWeight(),
+            style = TextStyle(color = ink, fontWeight = FontWeight.Bold, fontSize = 26.sp, fontFamily = FontFamily.Monospace))
+        Text("Осталось ${total - count}", style = TextStyle(color = muted))
+    }
+    Row(GlanceModifier.fillMaxWidth().padding(vertical = 5.dp)) {
+        repeat(10) { i ->
+            Box(GlanceModifier.defaultWeight().padding(end = 2.dp).height(4.dp)
+                .background(if (progress >= (i + 1) * 10) accent else track)) {}
+        }
+    }
+}
+
+@Composable
+private fun widgetColor(@ColorRes id: Int): ColorProvider {
+    val context = LocalContext.current
+    return remember(context, id) {
+        fun resolve(mode: Int): Color {
+            val config = Configuration(context.resources.configuration)
+            config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or mode
+            return Color(context.createConfigurationContext(config).getColor(id))
+        }
+        androidx.glance.color.ColorProvider(resolve(Configuration.UI_MODE_NIGHT_NO), resolve(Configuration.UI_MODE_NIGHT_YES))
     }
 }
 

@@ -25,7 +25,7 @@ fun StatisticsScreen(state: TaskState, today: LocalDate) {
     val counts = completed.groupingBy { it }.eachCount()
     val streak = streaks(completed, today)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Text(stringResource(R.string.ui_statisticsscreen_39), style = MaterialTheme.typography.headlineMedium) }
+        item { NothingDotMatrixText(stringResource(R.string.ui_statisticsscreen_39).uppercase(russian), MaterialTheme.typography.headlineMedium) }
         item { TaskProgress(completed.size, tasks.size, state.prefs.animations) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -43,7 +43,28 @@ fun StatisticsScreen(state: TaskState, today: LocalDate) {
         item { ActivityChart("Последние 7 дней", (6L downTo 0).map { counts[today.minusDays(it)] ?: 0 }) }
         item { ActivityChart("Последние 30 дней", (29L downTo 0).map { counts[today.minusDays(it)] ?: 0 }) }
         item {
-            StatsCard("Задачи по категориям") {
+            NothingStatCard("Карта активности · 35 дней") {
+                val peak = (0L..34L).maxOf { counts[today.minusDays(it)] ?: 0 }.coerceAtLeast(1)
+                repeat(5) { week ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        repeat(7) { column ->
+                            val day = today.minusDays((34 - week * 7 - column).toLong())
+                            val count = counts[day] ?: 0
+                            val ink = when {
+                                count == 0 -> MaterialTheme.colorScheme.surfaceVariant
+                                day == today -> MaterialTheme.colorScheme.primary
+                                else -> androidx.compose.ui.graphics.lerp(MaterialTheme.colorScheme.surfaceVariant,
+                                    MaterialTheme.colorScheme.onSurface, .3f + .7f * count / peak)
+                            }
+                            Box(Modifier.weight(1f).height(16.dp).background(ink, RoundedCornerShape(3.dp))
+                                .semantics { contentDescription = "${day.format(shortDate)} · выполнено $count" })
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            NothingStatCard("Задачи по категориям") {
                 if (tasks.isEmpty()) Text(stringResource(R.string.ui_statisticsscreen_40))
                 (state.categories.map { Triple(it.id, "${it.icon} ${it.name}", Color(it.color)) } +
                     Triple(null, "Без категории", MaterialTheme.colorScheme.primary)).forEach { (id, name, color) ->
@@ -63,17 +84,17 @@ fun StatisticsScreen(state: TaskState, today: LocalDate) {
 
 @Composable
 private fun Metric(title: String, value: Int, modifier: Modifier) {
-    Surface(modifier, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface) {
+    NothingCard(modifier) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(value.toString(), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+            NothingDotMatrixText(value.toString(), MaterialTheme.typography.headlineMedium)
             Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
-private fun StatsCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface) {
+private fun NothingStatCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    NothingCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             content()
@@ -84,14 +105,14 @@ private fun StatsCard(title: String, content: @Composable ColumnScope.() -> Unit
 @Composable
 private fun ActivityChart(title: String, counts: List<Int>) {
     val max = (counts.maxOrNull() ?: 0).coerceAtLeast(1)
-    StatsCard(title) {
+    NothingStatCard(title) {
         Text("Выполнено задач · ${counts.sum()}", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(Modifier.fillMaxWidth().height(78.dp), horizontalArrangement = Arrangement.spacedBy(if (counts.size > 7) 2.dp else 8.dp),
             verticalAlignment = Alignment.Bottom) {
             counts.forEachIndexed { index, value ->
                 Box(Modifier.weight(1f).height(if (value == 0) 4.dp else (value.toFloat() / max * 72).dp)
-                    .background(if (value == 0) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
-                        RoundedCornerShape(4.dp))
+                    .background(if (value == 0) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant,
+                        RoundedCornerShape(2.dp))
                     .semantics { contentDescription = "День ${index + 1}: выполнено $value" })
             }
         }

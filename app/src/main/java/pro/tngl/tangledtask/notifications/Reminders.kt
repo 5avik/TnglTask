@@ -16,6 +16,7 @@ import pro.tngl.tangledtask.MainActivity
 import pro.tngl.tangledtask.core.TaskApp
 import pro.tngl.tangledtask.data.Task
 import pro.tngl.tangledtask.widgets.TodayWidget
+import pro.tngl.tangledtask.widgets.ProgressWidget
 import androidx.glance.appwidget.updateAll
 import java.time.*
 import java.util.concurrent.TimeUnit
@@ -76,6 +77,7 @@ class ReminderWork(context: Context, params: WorkerParameters) : CoroutineWorker
         }
         previous.edit().putStringSet("ids", scheduled).apply()
         runCatching { TodayWidget().updateAll(app) }
+        runCatching { ProgressWidget().updateAll(app) }
         val midnight = LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         WorkManager.getInstance(app).enqueueUniqueWork("day-rollover", ExistingWorkPolicy.REPLACE,
             OneTimeWorkRequestBuilder<DayRolloverWork>()

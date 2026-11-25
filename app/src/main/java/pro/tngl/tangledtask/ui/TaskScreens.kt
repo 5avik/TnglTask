@@ -14,6 +14,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,31 +50,37 @@ fun TaskProgress(done: Int, total: Int, animations: Boolean) {
     val target = if (total == 0) 0f else done.toFloat() / total
     val progress by animateFloatAsState(target, if (animations) tween(260) else snap(), label = "progress")
     val celebration = remember { Animatable(1f) }
-    LaunchedEffect(target == 1f, animations) {
+    var previousTarget by remember { mutableFloatStateOf(target) }
+    LaunchedEffect(target, animations) {
+        val increased = target > previousTarget
+        previousTarget = target
         celebration.snapTo(1f)
-        if (animations && target == 1f) {
-            celebration.animateTo(1.08f, tween(130))
+        if (animations && increased) {
+            celebration.animateTo(if (target == 1f) 1.12f else 1.06f, tween(130))
             celebration.animateTo(1f, tween(150))
         }
     }
-    Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(18.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(60.dp).graphicsLayer {
-                scaleX = celebration.value
-                scaleY = celebration.value
-            }, contentAlignment = Alignment.Center) {
-                CircularProgressIndicator({ progress }, modifier = Modifier.fillMaxSize(), strokeWidth = 5.dp,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant)
-                Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.labelLarge)
+    NothingCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            Text(stringResource(R.string.ui_taskscreens_33).uppercase(), style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                NothingDotMatrixText("${(progress * 100).toInt()}%", MaterialTheme.typography.displayMedium,
+                    Modifier.weight(1f), MaterialTheme.colorScheme.onSurface)
+                NothingProgressIndicator(progress, Modifier.size(62.dp).graphicsLayer {
+                    scaleX = celebration.value
+                    scaleY = celebration.value
+                })
             }
-            Column(Modifier.weight(1f).then(if (animations) Modifier.animateContentSize() else Modifier),
-                verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(R.string.ui_taskscreens_33), style = MaterialTheme.typography.titleMedium)
-                Text("Выполнено $done · осталось ${total - done}", style = MaterialTheme.typography.bodyMedium,
+            NothingSegmentedProgress(progress)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Выполнено $done", style = MaterialTheme.typography.labelMedium)
+                Text("Осталось ${total - done}", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (animations) AnimatedVisibility(target == 1f) { Text(stringResource(R.string.ui_taskscreens_34), color = MaterialTheme.colorScheme.primary) }
-                else if (target == 1f) Text(stringResource(R.string.ui_taskscreens_34), color = MaterialTheme.colorScheme.primary)
             }
+            if (animations) AnimatedVisibility(target == 1f) { Text("ВСЁ ГОТОВО", style = MaterialTheme.typography.labelMedium) }
+            else if (target == 1f) Text("ВСЁ ГОТОВО", style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -99,22 +109,9 @@ fun CalendarGrid(selected: LocalDate, today: LocalDate, daysWithTasks: Set<Long>
                 Row(Modifier.fillMaxWidth()) {
                     repeat(7) { col ->
                         val day = start.plusDays((row * 7 + col).toLong())
-                        val active = day == selected
-                        Box(Modifier.weight(1f).heightIn(min = 44.dp).padding(2.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (active) MaterialTheme.colorScheme.primary else Color.Transparent)
-                            .clickable(onClickLabel = day.format(longDate)) { onSelect(day) }, contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                val color = when {
-                                    active -> MaterialTheme.colorScheme.onPrimary
-                                    day == today -> MaterialTheme.colorScheme.primary
-                                    month && day.month != selected.month -> MaterialTheme.colorScheme.onSurfaceVariant
-                                    else -> MaterialTheme.colorScheme.onSurface
-                                }
-                                Text(day.dayOfMonth.toString(), color = color, fontWeight = if (day == today || active) FontWeight.Bold else FontWeight.Normal)
-                                Box(Modifier.size(4.dp).background(if (day.toEpochDay() in daysWithTasks) color else Color.Transparent, CircleShape))
-                            }
-                        }
+                        NothingCalendarDay(day, day == selected, day == today,
+                            !month || day.month == selected.month, day.toEpochDay() in daysWithTasks,
+                            Modifier.weight(1f)) { onSelect(day) }
                     }
                 }
             }
@@ -123,7 +120,34 @@ fun CalendarGrid(selected: LocalDate, today: LocalDate, daysWithTasks: Set<Long>
 }
 
 @Composable
-private fun EmptyTasks(title: String, body: String, add: (() -> Unit)? = null) {
+private fun NothingCalendarDay(
+    day: LocalDate, selected: Boolean, today: Boolean, inMonth: Boolean, hasTasks: Boolean,
+    modifier: Modifier, onClick: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    val ink = when {
+        selected -> colors.inverseOnSurface
+        today -> colors.onSurface
+        !inMonth -> colors.onSurfaceVariant
+        else -> colors.onSurface
+    }
+    Box(modifier.heightIn(min = 48.dp).selectable(selected = selected, onClick = onClick)
+        .semantics { contentDescription = day.format(longDate) }, contentAlignment = Alignment.Center) {
+        Column(Modifier.size(38.dp).clip(CircleShape)
+            .background(if (selected) colors.inverseSurface else Color.Transparent),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            NothingDotMatrixText(day.dayOfMonth.toString(), MaterialTheme.typography.titleMedium, color = ink)
+            Box(Modifier.size(4.dp).background(when {
+                today -> colors.primary
+                hasTasks -> ink
+                else -> Color.Transparent
+            }, CircleShape))
+        }
+    }
+}
+
+@Composable
+private fun NothingEmptyState(title: String, body: String, add: (() -> Unit)? = null) {
     Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
@@ -136,7 +160,7 @@ private fun EmptyTasks(title: String, body: String, add: (() -> Unit)? = null) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TaskRow(
+private fun NothingTaskItem(
     task: Task, category: Category?, state: TaskState, today: Long, selected: Boolean, selecting: Boolean,
     open: () -> Unit, select: () -> Unit, complete: (Boolean) -> Unit, delete: () -> Unit,
     restore: () -> Unit, drag: Modifier, modifier: Modifier,
@@ -157,7 +181,7 @@ private fun TaskRow(
         if (it == SwipeToDismissBoxValue.EndToStart) delete()
         false
     })
-    SwipeToDismissBox(swipe, modifier = modifier.clip(RoundedCornerShape(15.dp)),
+    SwipeToDismissBox(swipe, modifier = modifier.clip(RoundedCornerShape(5.dp)),
         enableDismissFromStartToEnd = !selecting && !task.deleted,
         enableDismissFromEndToStart = !selecting && !task.deleted,
         backgroundContent = {
@@ -167,17 +191,21 @@ private fun TaskRow(
                 Icon(if (end) Icons.Default.Delete else Icons.Default.Check, null)
             }
         }) {
+        val divider = MaterialTheme.colorScheme.outline
         Surface(color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface) {
-            Row(Modifier.fillMaxWidth().combinedClickable(onClick = open, onLongClick = select).padding(end = 10.dp),
+            Row(Modifier.fillMaxWidth().drawBehind {
+                drawLine(divider, Offset(48.dp.toPx(), size.height - .5.dp.toPx()),
+                    Offset(size.width, size.height - .5.dp.toPx()), 1.dp.toPx())
+            }.combinedClickable(onClick = open, onLongClick = select).padding(end = 10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 if (task.deleted) {
                     TextButton(onClick = restore) { Text(stringResource(R.string.ui_taskscreens_36)) }
                 } else {
-                    Checkbox(if (selecting) selected else done, { if (selecting) select() else complete(it) },
+                    NothingCheckbox(if (selecting) selected else done, { if (selecting) select() else complete(it) },
                         modifier = Modifier.semantics { contentDescription = task.title })
                 }
                 if (color != null) Spacer(Modifier.padding(end = 8.dp).width(3.dp).height(24.dp).background(Color(color), CircleShape))
-                Column(Modifier.weight(1f).padding(vertical = 9.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.weight(1f).padding(vertical = 7.dp).alpha(if (done) .78f else 1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(task.title, style = MaterialTheme.typography.titleSmall,
                         textDecoration = if (done) TextDecoration.LineThrough else TextDecoration.None,
                         maxLines = 2, overflow = TextOverflow.Ellipsis,
@@ -187,7 +215,7 @@ private fun TaskRow(
                     if (details.isNotBlank()) Text(details, style = MaterialTheme.typography.labelSmall,
                         color = if (!done && (task.dueDay ?: today) < today) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (task.priority > 0) Spacer(Modifier.padding(horizontal = 6.dp).size(7.dp).background(priorityColors[task.priority], CircleShape))
+                if (task.priority > 0) Spacer(Modifier.padding(horizontal = 6.dp).size(7.dp).background(if (task.priority >= 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, CircleShape))
                 if (!task.deleted && !selecting && drag != Modifier) {
                     Box(drag.size(40.dp), contentAlignment = Alignment.Center) {
                         Icon(Icons.Default.Menu, "Удерживайте для перемещения", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -259,14 +287,14 @@ fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: Loc
         selection = ArrayList(if (id in selection) selection - id else selection + id)
     }
     BackHandler(selection.isNotEmpty()) { selection = arrayListOf() }
-    LazyColumn(state = lazy, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 88.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(state = lazy, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 80.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)) {
         if (route == "today") {
             item {
                 Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(if (state.prefs.name.isBlank()) "Привет!" else "Привет, ${state.prefs.name}!",
                         style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Text(today.format(longDate).replaceFirstChar { it.uppercase(russian) }, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    NothingDotMatrixText(today.format(longDate).uppercase(russian), MaterialTheme.typography.titleMedium)
                 }
             }
             item { TaskProgress(dueToday.count { it.completedAt != null }, dueToday.size, state.prefs.animations) }
@@ -276,8 +304,8 @@ fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: Loc
                 IconButton(onClick = { selectDay((if (month) selected.minusMonths(1) else selected.minusWeeks(1)).toEpochDay()) }) {
                     Icon(Icons.Default.KeyboardArrowLeft, "Назад")
                 }
-                Text(selected.format(java.time.format.DateTimeFormatter.ofPattern("LLLL yyyy", russian)),
-                    Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                NothingDotMatrixText(selected.format(java.time.format.DateTimeFormatter.ofPattern("LLLL yyyy", russian)).uppercase(russian),
+                    MaterialTheme.typography.headlineSmall, Modifier.weight(1f))
                 IconButton(onClick = { selectDay((if (month) selected.plusMonths(1) else selected.plusWeeks(1)).toEpochDay()) }) {
                     Icon(Icons.Default.KeyboardArrowRight, "Вперёд")
                 }
@@ -300,7 +328,7 @@ fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: Loc
             }
         }
         if (route == "all") item {
-            OutlinedTextField(search, { search = it }, Modifier.fillMaxWidth(), singleLine = true,
+            NothingTextField(search, { search = it }, Modifier.fillMaxWidth(), singleLine = true,
                 leadingIcon = { Icon(Icons.Default.Search, null) }, label = { Text(stringResource(R.string.ui_taskscreens_37)) })
         }
         if (route != "calendar") item {
@@ -331,7 +359,7 @@ fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: Loc
             }
         }
         if (shown.isEmpty()) item {
-            EmptyTasks(if (status == 3) "Корзина пуста" else "Задач пока нет",
+            NothingEmptyState(if (status == 3) "Корзина пуста" else "Задач пока нет",
                 if (status == 3) "Удалённые задачи появляются здесь." else "Добавьте задачу или измените фильтры.",
                 if (status == 3) null else ({ add(selectedDay.takeIf { route == "calendar" || focused }) }))
         }
@@ -366,7 +394,7 @@ fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: Loc
                         }?.key as? String
                     }
                 } else Modifier
-                TaskRow(task, categories[task.categoryId], state, day, task.id in selection, selection.isNotEmpty(),
+                NothingTaskItem(task, categories[task.categoryId], state, day, task.id in selection, selection.isNotEmpty(),
                     open = { if (selection.isNotEmpty() || task.deleted) select(task.id) else open(task) },
                     select = { select(task.id) }, complete = { pulse(); model.complete(task, it) },
                     delete = { pulse(); model.delete(setOf(task.id)) }, restore = { model.restore(setOf(task.id)) },

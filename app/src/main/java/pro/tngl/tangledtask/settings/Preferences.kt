@@ -19,6 +19,7 @@ data class Preferences(
     val mondayFirst: Boolean = true,
     val time24: Boolean = true,
     val showCompleted: Boolean = true,
+    val dotTypography: Boolean = true,
 )
 
 class PreferencesStore(context: Context) {
@@ -32,13 +33,14 @@ class PreferencesStore(context: Context) {
     private val mondayFirst = booleanPreferencesKey("mondayFirst")
     private val time24 = booleanPreferencesKey("time24")
     private val showCompleted = booleanPreferencesKey("showCompleted")
+    private val dotTypography = booleanPreferencesKey("dotTypography")
 
     val values = store.data.catch { if (it is IOException) emit(emptyPreferences()) else throw it }.map(::read)
 
     private fun read(p: androidx.datastore.preferences.core.Preferences) = Preferences(
         p[name].orEmpty(), p[theme] ?: "system", p[accent] ?: 0xFF34D399,
         p[animations] ?: true, p[haptics] ?: true, p[notifications] ?: true,
-        p[mondayFirst] ?: true, p[time24] ?: true, p[showCompleted] ?: true,
+        p[mondayFirst] ?: true, p[time24] ?: true, p[showCompleted] ?: true, p[dotTypography] ?: true,
     )
 
     suspend fun edit(change: (Preferences) -> Preferences) {
@@ -53,6 +55,7 @@ class PreferencesStore(context: Context) {
             p[mondayFirst] = value.mondayFirst
             p[time24] = value.time24
             p[showCompleted] = value.showCompleted
+            p[dotTypography] = value.dotTypography
         }
     }
 }
