@@ -8,7 +8,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
@@ -50,21 +49,14 @@ fun NothingTheme(prefs: Preferences, content: @Composable () -> Unit) {
                 small = RoundedCornerShape(10.dp),
                 medium = RoundedCornerShape(14.dp),
                 large = RoundedCornerShape(20.dp),
-                extraLarge = RoundedCornerShape(28.dp),
-        ),
-        content = content,
+                extraLarge = RoundedCornerShape(24.dp),
+            ),
+            content = content,
         )
     }
 }
 
-private val NothingTypography = Typography().let { type ->
-    type.copy(
-        headlineLarge = type.headlineLarge.copy(fontFamily = FontFamily.Monospace),
-        headlineMedium = type.headlineMedium.copy(fontFamily = FontFamily.Monospace),
-        headlineSmall = type.headlineSmall.copy(fontFamily = FontFamily.Monospace),
-        labelMedium = type.labelMedium.copy(fontFamily = FontFamily.Monospace),
-    )
-}
+private val NothingTypography = Typography()
 
 private fun NothingColors(dark: Boolean, background: Color): ColorScheme {
     val surface = if (dark) Color(0xFF141414) else Color.White

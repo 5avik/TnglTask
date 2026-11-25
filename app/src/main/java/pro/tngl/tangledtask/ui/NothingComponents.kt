@@ -21,6 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
@@ -35,7 +37,7 @@ import androidx.compose.ui.unit.dp
 internal val LocalDotTypography = compositionLocalOf { true }
 internal val LocalNothingMotion = compositionLocalOf { true }
 
-private val DotMatrixFamily = FontFamily(Font(R.font.dot_matrix_mono_bold, weight = FontWeight.Bold))
+private val DotMatrixFamily = FontFamily(Font(R.font.dot_matrix_mono_regular, weight = FontWeight.Normal))
 
 @Composable
 fun NothingDotMatrixText(
@@ -43,13 +45,18 @@ fun NothingDotMatrixText(
     style: TextStyle,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurface,
+    maxLines: Int = 1,
 ) {
+    if (LocalDotTypography.current && text.isNotEmpty() && text.all { it in DisplayMatrix }) {
+        MatrixDisplayText(text, style, modifier, color)
+        return
+    }
     val displayStyle = if (LocalDotTypography.current) {
-        style.copy(fontFamily = DotMatrixFamily, fontWeight = FontWeight.Bold)
+        style.copy(fontFamily = DotMatrixFamily, fontWeight = FontWeight.Normal)
     } else {
         style
     }
-    Text(text, modifier, color = color, style = displayStyle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text(text, modifier, color = color, style = displayStyle, maxLines = maxLines, overflow = TextOverflow.Ellipsis)
 }
 
 @Composable
@@ -59,9 +66,9 @@ fun NothingCheckbox(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifi
     val colors = MaterialTheme.colorScheme
     Box(modifier.size(48.dp).toggleable(checked, role = Role.Checkbox, onValueChange = onCheckedChange),
         contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(21.dp)) {
+        Canvas(Modifier.size(24.dp)) {
             val stroke = 1.6.dp.toPx()
-            drawCircle(colors.onSurfaceVariant, radius = center.x - stroke / 2, style = Stroke(stroke))
+            drawCircle(colors.onSurface, radius = center.x - stroke / 2, style = Stroke(stroke))
             if (fraction > 0f) {
                 drawCircle(colors.primary, radius = center.x * fraction)
                 val start = Offset(size.width * .25f, size.height * .51f)
@@ -75,9 +82,12 @@ fun NothingCheckbox(checked: Boolean, onCheckedChange: (Boolean) -> Unit, modifi
 }
 
 @Composable
-fun NothingSegmentedProgress(progress: Float, modifier: Modifier = Modifier) {
+fun NothingSegmentedProgress(
+    progress: Float,
+    modifier: Modifier = Modifier,
+    track: Color = MaterialTheme.colorScheme.surfaceVariant,
+) {
     val active = MaterialTheme.colorScheme.primary
-    val track = MaterialTheme.colorScheme.surfaceVariant
     Canvas(modifier.fillMaxWidth().height(7.dp).semantics {
         progressBarRangeInfo = ProgressBarRangeInfo(progress.coerceIn(0f, 1f), 0f..1f)
     }) {
@@ -89,20 +99,6 @@ fun NothingSegmentedProgress(progress: Float, modifier: Modifier = Modifier) {
             val position = Offset(i * cell, 0f)
             drawRoundRect(track, position, Size(width, size.height), CornerRadius(1.dp.toPx()))
             if (amount > 0) drawRoundRect(active, position, Size(width * amount, size.height), CornerRadius(1.dp.toPx()))
-        }
-    }
-}
-
-@Composable
-fun NothingProgressIndicator(progress: Float, modifier: Modifier = Modifier) {
-    val colors = MaterialTheme.colorScheme
-    Canvas(modifier) {
-        val stroke = 4.dp.toPx()
-        repeat(24) { index ->
-            drawArc(if (index < progress * 24) colors.primary else colors.surfaceVariant,
-                startAngle = -90f + index * 15f, sweepAngle = 10f, useCenter = false,
-                topLeft = Offset(stroke, stroke), size = Size(size.width - 2 * stroke, size.height - 2 * stroke),
-                style = Stroke(stroke, cap = StrokeCap.Round))
         }
     }
 }
@@ -152,12 +148,12 @@ fun NothingNavigationBar(selected: Int, titles: List<String>, onSelect: (Int) ->
                     val active = index == selected
                     val ink = if (active) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     Column(Modifier.weight(1f).heightIn(min = 56.dp)
-                        .selectable(active, role = Role.Tab, onClick = { onSelect(index) }).padding(vertical = 5.dp),
+                        .selectable(active, role = Role.Tab, onClick = { onSelect(index) }).padding(vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Box(Modifier.size(12.dp, 2.dp).background(
-                            if (active) MaterialTheme.colorScheme.primary else Color.Transparent, CircleShape))
                         NothingNavIcon(index, ink)
-                        Text(title, color = ink, maxLines = 1, style = MaterialTheme.typography.labelSmall)
+                        Box(Modifier.size(4.dp).background(
+                            if (active) MaterialTheme.colorScheme.primary else Color.Transparent, CircleShape))
+                        Text(title, color = ink, maxLines = 1, style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
@@ -219,4 +215,68 @@ fun NothingTextField(
             focusedContainerColor = colors.surface,
             unfocusedContainerColor = colors.surface,
         ))
+}
+
+private val DisplayMatrix = mapOf(
+    'T' to rows(31, 4, 4, 4, 4, 4, 4),
+    'N' to rows(17, 25, 25, 21, 19, 19, 17),
+    'G' to rows(14, 17, 16, 23, 17, 17, 15),
+    'L' to rows(16, 16, 16, 16, 16, 16, 31),
+    'A' to rows(14, 17, 17, 31, 17, 17, 17),
+    'S' to rows(15, 16, 16, 14, 1, 1, 30),
+    'K' to rows(17, 18, 20, 24, 20, 18, 17),
+    '0' to rows(14, 17, 19, 21, 25, 17, 14),
+    '1' to rows(4, 12, 4, 4, 4, 4, 14),
+    '2' to rows(14, 17, 1, 2, 4, 8, 31),
+    '3' to rows(30, 1, 1, 14, 1, 1, 30),
+    '4' to rows(2, 6, 10, 18, 31, 2, 2),
+    '5' to rows(31, 16, 16, 30, 1, 1, 30),
+    '6' to rows(14, 16, 16, 30, 17, 17, 14),
+    '7' to rows(31, 1, 2, 4, 8, 8, 8),
+    '8' to rows(14, 17, 17, 14, 17, 17, 14),
+    '9' to rows(14, 17, 17, 15, 1, 1, 14),
+    '%' to rows(25, 25, 2, 4, 8, 19, 19),
+)
+private val BlankPage = rows(30, 17, 17, 17, 17, 17, 31)
+
+private fun rows(vararg bits: Int) = bits
+
+@Composable
+fun MatrixDisplayText(text: String, style: TextStyle, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurface) {
+    if (!LocalDotTypography.current) {
+        Text(text, modifier, color = color, style = style, maxLines = 1)
+        return
+    }
+    val height = with(LocalDensity.current) { style.fontSize.toDp() }
+    val columns = text.length * 6 - 1
+    Canvas(modifier.size(width = height * (columns / 7f), height = height)
+        .semantics { contentDescription = text }) {
+        val pitch = minOf(size.width / columns, size.height / 7)
+        val origin = Offset((size.width - columns * pitch) / 2, (size.height - 7 * pitch) / 2)
+        text.forEachIndexed { index, character ->
+            DisplayMatrix[character]?.forEachIndexed { row, bits ->
+                repeat(5) { column ->
+                    if (bits and (1 shl (4 - column)) != 0) {
+                        drawCircle(color, pitch * .32f,
+                            origin + Offset((index * 6 + column + .5f) * pitch, (row + .5f) * pitch))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MatrixPageIcon() {
+    val ink = MaterialTheme.colorScheme.onSurfaceVariant
+    Canvas(Modifier.size(25.dp, 35.dp)) {
+        val pitch = size.width / 5
+        BlankPage.forEachIndexed { row, bits ->
+            repeat(5) { column ->
+                if (bits and (1 shl (4 - column)) != 0) {
+                    drawCircle(ink, pitch * .3f, Offset((column + .5f) * pitch, (row + .5f) * pitch))
+                }
+            }
+        }
+    }
 }

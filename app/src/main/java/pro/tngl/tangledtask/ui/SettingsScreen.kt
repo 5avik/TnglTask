@@ -48,9 +48,9 @@ fun SettingsScreen(state: TaskState, model: TaskViewModel) {
             context.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
         }
     }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         item {
-            SettingsCard("Персонализация") {
+            SettingsCard("Оформление") {
                 NothingTextField(name ?: prefs.name, { name = it.take(60) }, Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.ui_settingsscreen_1)) }, singleLine = true)
                 if (name != null) TextButton(onClick = {

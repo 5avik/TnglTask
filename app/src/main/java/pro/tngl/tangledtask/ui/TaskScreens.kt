@@ -6,8 +6,6 @@ import pro.tngl.tangledtask.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
@@ -48,40 +46,35 @@ import java.time.format.TextStyle
 @Composable
 fun TaskProgress(done: Int, total: Int, animations: Boolean) {
     val target = if (total == 0) 0f else done.toFloat() / total
-    val progress by animateFloatAsState(target, if (animations) tween(260) else snap(), label = "progress")
-    val celebration = remember { Animatable(1f) }
-    var previousTarget by remember { mutableFloatStateOf(target) }
-    LaunchedEffect(target, animations) {
-        val increased = target > previousTarget
-        previousTarget = target
-        celebration.snapTo(1f)
-        if (animations && increased) {
-            celebration.animateTo(if (target == 1f) 1.12f else 1.06f, tween(130))
-            celebration.animateTo(1f, tween(150))
+    val progress by animateFloatAsState(target, if (animations) tween(320) else snap(), label = "progress")
+    val scheme = MaterialTheme.colorScheme
+    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Surface(Modifier.weight(1f).fillMaxHeight(), shape = MaterialTheme.shapes.large,
+            color = Color.Black, contentColor = Color.White, border = BorderStroke(1.dp, Color(0xFF303030))) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Прогресс", style = MaterialTheme.typography.labelLarge, color = Color(0xFFB7B7B7))
+                MatrixDisplayText("${(progress * 100).toInt()}%", MaterialTheme.typography.displaySmall, color = Color.White)
+                NothingSegmentedProgress(progress, track = Color(0xFF262626))
+                if (animations) AnimatedVisibility(target == 1f) { Text("Всё готово", style = MaterialTheme.typography.labelMedium) }
+                else if (target == 1f) Text("Всё готово", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+        Surface(Modifier.weight(1f).fillMaxHeight(), shape = MaterialTheme.shapes.large,
+            color = Color(0xFFF5F5F5), contentColor = Color(0xFF111111), border = BorderStroke(1.dp, scheme.outline)) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                ProgressCount(done, "Выполнено")
+                HorizontalDivider(color = Color(0xFFD5D5D5))
+                ProgressCount(total, "Запланировано")
+            }
         }
     }
-    NothingCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            Text(stringResource(R.string.ui_taskscreens_33).uppercase(), style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically) {
-                NothingDotMatrixText("${(progress * 100).toInt()}%", MaterialTheme.typography.displayMedium,
-                    Modifier.weight(1f), MaterialTheme.colorScheme.onSurface)
-                NothingProgressIndicator(progress, Modifier.size(62.dp).graphicsLayer {
-                    scaleX = celebration.value
-                    scaleY = celebration.value
-                })
-            }
-            NothingSegmentedProgress(progress)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Выполнено $done", style = MaterialTheme.typography.labelMedium)
-                Text("Осталось ${total - done}", style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (animations) AnimatedVisibility(target == 1f) { Text("ВСЁ ГОТОВО", style = MaterialTheme.typography.labelMedium) }
-            else if (target == 1f) Text("ВСЁ ГОТОВО", style = MaterialTheme.typography.labelMedium)
-        }
+}
+
+@Composable
+private fun ProgressCount(value: Int, label: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        MatrixDisplayText(value.toString(), MaterialTheme.typography.headlineSmall, color = Color(0xFF111111))
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Color(0xFF535353))
     }
 }
 
@@ -94,25 +87,23 @@ fun CalendarGrid(selected: LocalDate, today: LocalDate, daysWithTasks: Set<Long>
     val first = if (month) selected.withDayOfMonth(1) else selected
     val start = weekStart(first, monday)
     val rows = if (month) ((first.toEpochDay() - start.toEpochDay()).toInt() + first.lengthOfMonth() + 6) / 7 else 1
-    Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(18.dp)) {
-        Column(Modifier.fillMaxWidth().padding(8.dp)) {
-            Row(Modifier.fillMaxWidth()) {
-                repeat(7) { index ->
-                    val day = start.plusDays(index.toLong())
-                    Box(Modifier.weight(1f).height(25.dp), contentAlignment = Alignment.Center) {
-                        Text(day.dayOfWeek.getDisplayName(TextStyle.SHORT, russian),
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (month) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                repeat(7) { column ->
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Text(start.plusDays(column.toLong()).dayOfWeek.getDisplayName(TextStyle.SHORT, russian),
                             style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
-            repeat(rows) { row ->
-                Row(Modifier.fillMaxWidth()) {
-                    repeat(7) { col ->
-                        val day = start.plusDays((row * 7 + col).toLong())
-                        NothingCalendarDay(day, day == selected, day == today,
-                            !month || day.month == selected.month, day.toEpochDay() in daysWithTasks,
-                            Modifier.weight(1f)) { onSelect(day) }
-                    }
+        }
+        repeat(rows) { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                repeat(7) { col ->
+                    val day = start.plusDays((row * 7 + col).toLong())
+                    NothingCalendarDay(day, day == selected, day == today, !month || day.month == selected.month,
+                        day.toEpochDay() in daysWithTasks, weekday = !month, modifier = Modifier.weight(1f)) { onSelect(day) }
                 }
             }
         }
@@ -122,39 +113,38 @@ fun CalendarGrid(selected: LocalDate, today: LocalDate, daysWithTasks: Set<Long>
 @Composable
 private fun NothingCalendarDay(
     day: LocalDate, selected: Boolean, today: Boolean, inMonth: Boolean, hasTasks: Boolean,
-    modifier: Modifier, onClick: () -> Unit,
+    weekday: Boolean, modifier: Modifier, onClick: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val ink = when {
-        selected -> colors.inverseOnSurface
-        today -> colors.onSurface
+        selected -> colors.onPrimary
         !inMonth -> colors.onSurfaceVariant
         else -> colors.onSurface
     }
-    Box(modifier.heightIn(min = 48.dp).selectable(selected = selected, onClick = onClick)
-        .semantics { contentDescription = day.format(longDate) }, contentAlignment = Alignment.Center) {
-        Column(Modifier.size(38.dp).clip(CircleShape)
-            .background(if (selected) colors.inverseSurface else Color.Transparent),
-            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            NothingDotMatrixText(day.dayOfMonth.toString(), MaterialTheme.typography.titleMedium, color = ink)
-            Box(Modifier.size(4.dp).background(when {
-                today -> colors.primary
-                hasTasks -> ink
-                else -> Color.Transparent
-            }, CircleShape))
+    val shape = RoundedCornerShape(12.dp)
+    Column(modifier.heightIn(min = if (weekday) 63.dp else 48.dp)
+        .clip(shape).background(if (selected) colors.primary else colors.surface)
+        .then(if (today && !selected) Modifier.border(1.dp, colors.primary, shape) else Modifier)
+        .selectable(selected = selected, onClick = onClick)
+        .semantics { contentDescription = day.format(longDate) },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
+        if (weekday) {
+            Text(day.dayOfWeek.getDisplayName(TextStyle.SHORT, russian), style = MaterialTheme.typography.labelSmall,
+                color = if (selected) ink else colors.onSurfaceVariant)
         }
+        Text(day.dayOfMonth.toString(), color = ink, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Box(Modifier.size(4.dp).background(if (hasTasks) ink else Color.Transparent, CircleShape))
     }
 }
 
 @Composable
-private fun NothingEmptyState(title: String, body: String, add: (() -> Unit)? = null) {
-    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface) {
-        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary)
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
-            if (add != null) TextButton(onClick = add) { Text(stringResource(R.string.ui_taskscreens_35)) }
-        }
+private fun NothingEmptyState(title: String, body: String) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        MatrixPageIcon()
+        Text(title, style = MaterialTheme.typography.titleLarge)
+        Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -192,7 +182,7 @@ private fun NothingTaskItem(
             }
         }) {
         val divider = MaterialTheme.colorScheme.outline
-        Surface(color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface) {
+        Surface(color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background) {
             Row(Modifier.fillMaxWidth().drawBehind {
                 drawLine(divider, Offset(48.dp.toPx(), size.height - .5.dp.toPx()),
                     Offset(size.width, size.height - .5.dp.toPx()), 1.dp.toPx())
@@ -229,7 +219,7 @@ private fun NothingTaskItem(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: LocalDate,
-               selectedDay: Long, selectDay: (Long) -> Unit, open: (Task) -> Unit, add: (Long?) -> Unit) {
+               selectedDay: Long, selectDay: (Long) -> Unit, open: (Task) -> Unit) {
     val lazy = rememberLazyListState()
     val haptics = LocalHapticFeedback.current
     val currentState by rememberUpdatedState(state)
@@ -240,6 +230,7 @@ fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: Loc
     var priority by rememberSaveable { mutableIntStateOf(-1) }
     var sort by rememberSaveable { mutableIntStateOf(0) }
     var dateFilter by rememberSaveable { mutableIntStateOf(0) }
+    var filtersOpen by rememberSaveable { mutableStateOf(false) }
     var dragged by remember { mutableStateOf<String?>(null) }
     var displacement by remember { mutableFloatStateOf(0f) }
     var month by rememberSaveable { mutableStateOf(true) }
@@ -288,14 +279,15 @@ fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: Loc
     }
     BackHandler(selection.isNotEmpty()) { selection = arrayListOf() }
     LazyColumn(state = lazy, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 80.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (route == "today") {
             item {
-                Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(if (state.prefs.name.isBlank()) "Привет!" else "Привет, ${state.prefs.name}!",
-                        style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    NothingDotMatrixText(today.format(longDate).uppercase(russian), MaterialTheme.typography.titleMedium)
-                }
+                Text(
+                    today.format(longDate).replaceFirstChar { it.uppercase(russian) },
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 10.dp),
+                    maxLines = 2,
+                )
             }
             item { TaskProgress(dueToday.count { it.completedAt != null }, dueToday.size, state.prefs.animations) }
         }
@@ -304,8 +296,8 @@ fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: Loc
                 IconButton(onClick = { selectDay((if (month) selected.minusMonths(1) else selected.minusWeeks(1)).toEpochDay()) }) {
                     Icon(Icons.Default.KeyboardArrowLeft, "Назад")
                 }
-                NothingDotMatrixText(selected.format(java.time.format.DateTimeFormatter.ofPattern("LLLL yyyy", russian)).uppercase(russian),
-                    MaterialTheme.typography.headlineSmall, Modifier.weight(1f))
+                Text(selected.format(java.time.format.DateTimeFormatter.ofPattern("LLLL yyyy", russian)).replaceFirstChar { it.uppercase(russian) },
+                    Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 IconButton(onClick = { selectDay((if (month) selected.plusMonths(1) else selected.plusWeeks(1)).toEpochDay()) }) {
                     Icon(Icons.Default.KeyboardArrowRight, "Вперёд")
                 }
@@ -341,12 +333,8 @@ fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: Loc
             }
         }
         if (route == "all" && status != 3) item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Choice("Категория", category, listOf(null to "Все") + state.categories.map { it.id to it.name }) { category = it }
-                Choice("Приоритет", priority, listOf(-1 to "Все") + priorities.mapIndexed { i, s -> i to s }) { priority = it }
-                Choice("Дата", dateFilter, listOf(0 to "Любая", 1 to "Сегодня", 2 to "Прошедшие", 3 to "Будущие", 4 to "Без срока")) { dateFilter = it }
-                Choice("Порядок", sort, listOf(0 to "Ручной", 1 to "Дата", 2 to "Приоритет", 3 to "Категория", 4 to "Статус")) { sort = it }
-            }
+            val active = listOf(category != null, priority != -1, dateFilter != 0, sort != 0).count { it }
+            OutlinedButton(onClick = { filtersOpen = true }) { Text(if (active == 0) "Фильтры и сортировка" else "Фильтры и сортировка · $active") }
         }
         if (selection.isNotEmpty()) item {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -359,9 +347,15 @@ fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: Loc
             }
         }
         if (shown.isEmpty()) item {
-            NothingEmptyState(if (status == 3) "Корзина пуста" else "Задач пока нет",
-                if (status == 3) "Удалённые задачи появляются здесь." else "Добавьте задачу или измените фильтры.",
-                if (status == 3) null else ({ add(selectedDay.takeIf { route == "calendar" || focused }) }))
+            val emptyPlan = status != 3 && all.isEmpty() && search.isBlank() && category == null && priority == -1 && dateFilter == 0
+            NothingEmptyState(
+                title = when { status == 3 -> "Корзина пуста"; emptyPlan -> "Чистый лист"; else -> "Задач нет" },
+                body = when {
+                    status == 3 -> "Удалённые задачи появляются здесь."
+                    emptyPlan -> "Самое время запланировать день"
+                    else -> "Для выбранного представления задач пока нет."
+                },
+            )
         }
         groups.filter { it.second.isNotEmpty() }.forEach { (label, entries) ->
             if (label.isNotBlank()) item("header-$label") {
@@ -400,6 +394,21 @@ fun TaskScreen(route: String, state: TaskState, model: TaskViewModel, today: Loc
                     delete = { pulse(); model.delete(setOf(task.id)) }, restore = { model.restore(setOf(task.id)) },
                     drag = drag, modifier = if (dragged == task.id) Modifier.zIndex(1f).graphicsLayer { translationY = displacement }
                     else if (state.prefs.animations) Modifier.animateItem() else Modifier)
+            }
+        }
+    }
+    if (filtersOpen) {
+        NothingBottomSheet(onDismissRequest = { filtersOpen = false }) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Фильтры и сортировка", style = MaterialTheme.typography.headlineSmall)
+                Choice("Категория", category, listOf(null to "Все") + state.categories.map { it.id to it.name }) { category = it }
+                Choice("Приоритет", priority, listOf(-1 to "Все") + priorities.mapIndexed { i, s -> i to s }) { priority = it }
+                Choice("Дата", dateFilter, listOf(0 to "Любая", 1 to "Сегодня", 2 to "Прошедшие", 3 to "Будущие", 4 to "Без срока")) { dateFilter = it }
+                Choice("Порядок", sort, listOf(0 to "Ручной", 1 to "Дата", 2 to "Приоритет", 3 to "Категория", 4 to "Статус")) { sort = it }
+                NothingButton(onClick = { filtersOpen = false }, enabled = true, modifier = Modifier.fillMaxWidth()) {
+                    Text("Готово")
+                }
             }
         }
     }

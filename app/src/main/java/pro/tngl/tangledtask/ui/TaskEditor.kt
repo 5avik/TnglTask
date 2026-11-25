@@ -123,8 +123,8 @@ fun TaskEditor(original: Task?, initialDay: Long?, state: TaskState, model: Task
     )
     NothingBottomSheet(onDismissRequest = { if (!saving) close() }) {
         Column(Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState())
-            .padding(start = 20.dp, end = 20.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            NothingDotMatrixText(if (original == null) "Новая задача" else "Редактирование", MaterialTheme.typography.headlineSmall)
+            .padding(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(if (original == null) "Новая задача" else "Редактирование", style = MaterialTheme.typography.headlineSmall)
             NothingTextField(title, { title = it }, label = { Text(stringResource(R.string.ui_settingsscreen_18)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
             NothingButton(onClick = { persist(draft()) }, enabled = valid && !saving, modifier = Modifier.fillMaxWidth()) {
                 Text(if (original == null) "Создать задачу" else "Сохранить")
@@ -204,7 +204,7 @@ fun TaskEditor(original: Task?, initialDay: Long?, state: TaskState, model: Task
                 }) { Text("Выбрать") }
             }, dismissButton = { TextButton(onClick = { picker = null }) { Text("Отмена") } }) {
                 DatePicker(dateState, title = {
-                    NothingDotMatrixText("ДАТА", MaterialTheme.typography.titleLarge, Modifier.padding(16.dp))
+                    Text("Дата", Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
                 }, modifier = Modifier.verticalScroll(rememberScrollState()))
             }
         }
@@ -212,7 +212,7 @@ fun TaskEditor(original: Task?, initialDay: Long?, state: TaskState, model: Task
             val initial = minute ?: 540
             val clock = rememberTimePickerState(initial / 60, initial % 60, state.prefs.time24)
             AlertDialog(onDismissRequest = { picker = null },
-                title = { NothingDotMatrixText("ВРЕМЯ", MaterialTheme.typography.headlineSmall) },
+                title = { Text("Время", style = MaterialTheme.typography.headlineSmall) },
                 text = { TimeInput(clock) },
                 confirmButton = { TextButton(onClick = {
                     minute = clock.hour * 60 + clock.minute

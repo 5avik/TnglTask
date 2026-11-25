@@ -92,10 +92,12 @@ fun TaskAppContent(model: TaskViewModel, launchAction: String?, handled: () -> U
                     TopAppBar(title = {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                             Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
-                            NothingDotMatrixText(
-                                if (route == "settings") "НАСТРОЙКИ" else if (route == "today") "TNGLTASK" else titles[routes.indexOf(route)].uppercase(),
-                                MaterialTheme.typography.headlineSmall,
-                            )
+                            if (route == "today") {
+                                NothingDotMatrixText("TNGLTASK", MaterialTheme.typography.displaySmall)
+                            } else {
+                                Text(if (route == "settings") "Настройки" else titles[routes.indexOf(route)],
+                                    style = MaterialTheme.typography.headlineSmall)
+                            }
                         }
                     },
                         navigationIcon = {
@@ -140,7 +142,7 @@ fun TaskAppContent(model: TaskViewModel, launchAction: String?, handled: () -> U
                                         else -> TaskScreen(screen, state, model, today,
                                             if (screen == "calendar") calendarSelected else todaySelected,
                                             { if (screen == "calendar") calendarSelected = it else todaySelected = it },
-                                            { editorDay = null; editor = it.id }, ::add)
+                                            { editorDay = null; editor = it.id })
                                     }
                                 }
                             }

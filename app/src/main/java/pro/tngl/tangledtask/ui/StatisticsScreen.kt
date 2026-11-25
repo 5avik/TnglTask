@@ -25,7 +25,7 @@ fun StatisticsScreen(state: TaskState, today: LocalDate) {
     val counts = completed.groupingBy { it }.eachCount()
     val streak = streaks(completed, today)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { NothingDotMatrixText(stringResource(R.string.ui_statisticsscreen_39).uppercase(russian), MaterialTheme.typography.headlineMedium) }
+        item { Text(stringResource(R.string.ui_statisticsscreen_39), style = MaterialTheme.typography.headlineMedium) }
         item { TaskProgress(completed.size, tasks.size, state.prefs.animations) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -86,7 +86,7 @@ fun StatisticsScreen(state: TaskState, today: LocalDate) {
 private fun Metric(title: String, value: Int, modifier: Modifier) {
     NothingCard(modifier) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            NothingDotMatrixText(value.toString(), MaterialTheme.typography.headlineMedium)
+            MatrixDisplayText(value.toString(), MaterialTheme.typography.headlineSmall)
             Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
