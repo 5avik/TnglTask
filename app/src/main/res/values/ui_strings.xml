@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ui_settingsscreen_1">Имя пользователя</string>
+    <string name="ui_settingsscreen_2">Сохранить имя</string>
+    <string name="ui_settingsscreen_3">Цвет акцента</string>
+    <string name="ui_settingsscreen_4">Разрешения уведомлений</string>
+    <string name="ui_settingsscreen_5">Без разрешения Android может доставлять напоминания с задержкой.</string>
+    <string name="ui_settingsscreen_6">Разрешить точные напоминания</string>
+    <string name="ui_settingsscreen_7">Категории</string>
+    <string name="ui_settingsscreen_8">Добавить</string>
+    <string name="ui_settingsscreen_9">Задачи и категории хранятся на устройстве.</string>
+    <string name="ui_settingsscreen_10">Экспорт в JSON</string>
+    <string name="ui_settingsscreen_11">Импорт резервной копии</string>
+    <string name="ui_settingsscreen_12">TnglTask · Версия 1.0</string>
+    <string name="ui_settingsscreen_13">Локальный планировщик задач и времени</string>
+    <string name="ui_settingsscreen_14">Восстановить резервную копию?</string>
+    <string name="ui_settingsscreen_15">Задачи и категории на устройстве будут заменены данными из выбранного файла.</string>
+    <string name="ui_settingsscreen_16">Восстановить</string>
+    <string name="ui_settingsscreen_17">Отмена</string>
+    <string name="ui_settingsscreen_18">Название</string>
+    <string name="ui_settingsscreen_19">Символ или эмодзи</string>
+    <string name="ui_settingsscreen_20">Сохранить</string>
+    <string name="ui_taskeditor_21">Описание</string>
+    <string name="ui_taskeditor_22">Убрать срок</string>
+    <string name="ui_taskeditor_23">Убрать время</string>
+    <string name="ui_taskeditor_24">Интервал в днях (1–3650)</string>
+    <string name="ui_taskeditor_25">Цветовая метка</string>
+    <string name="ui_taskeditor_26">Подзадачи</string>
+    <string name="ui_taskeditor_27">Убрать</string>
+    <string name="ui_taskeditor_28">Новая подзадача</string>
+    <string name="ui_taskeditor_29">Дублировать</string>
+    <string name="ui_taskeditor_30">В корзину</string>
+    <string name="ui_taskeditor_31">Переместить задачу в корзину?</string>
+    <string name="ui_taskeditor_32">Переместить</string>
+    <string name="ui_taskscreens_33">Выполнение задач</string>
+    <string name="ui_taskscreens_34">Все задачи выполнены</string>
+    <string name="ui_taskscreens_35">Добавить задачу</string>
+    <string name="ui_taskscreens_36">Вернуть</string>
+    <string name="ui_taskscreens_37">Поиск задач</string>
+    <string name="ui_taskscreens_38">Снять</string>
+    <string name="ui_statisticsscreen_39">Продуктивность</string>
+    <string name="ui_statisticsscreen_40">Распределение появится после создания задач.</string>
+</resources>
